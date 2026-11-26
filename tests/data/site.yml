@@ -1,0 +1,68 @@
+# Observed on 2026-11-26. Paths, not marketing copy, so a text change
+# does not fail the high-risk gate. Exact headlines live in the e2e tests
+# only where the role of the element is the assertion.
+
+core_paths:
+  - /
+  - /en/
+  - /audit/
+  - /en/audit/
+  - /faq/
+  - /en/faq/
+  - /angebot/
+  - /en/quote/
+  - /impressum/
+  - /en/imprint/
+  - /datenschutz/
+  - /en/privacy/
+  - /agb/
+  - /en/agb/
+
+key_pages:
+  - /
+  - /en/
+  - /audit/
+  - /faq/
+  - /angebot/
+  - /impressum/
+  - /datenschutz/
+
+seo_pages:
+  - path: /
+    lang: de
+  - path: /en/
+    lang: en
+  - path: /audit/
+    lang: de
+  - path: /faq/
+    lang: de
+  - path: /angebot/
+    lang: de
+  - path: /impressum/
+    lang: de
+  - path: /datenschutz/
+    lang: de
+
+blocked_html:
+  - /admin/
+  - /dashboard/
+  - /login/
+  - /wp-admin/
+
+blocked_api:
+  - /api/
+  - /api/health
+  - /api/proposal
+
+secret_probe:
+  - /.env
+
+contact_email: veryops@kintree.eu
+
+missing_path: /__qa_portfolio_missing__/
+
+hardening_headers:
+  - strict-transport-security
+  - content-security-policy
+  - x-content-type-options
+  - referrer-policy

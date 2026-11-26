@@ -1,0 +1,367 @@
+# Requirement catalog for the public veryops site.
+# automation: automated | manual | na
+# risk: high | medium | low
+# Every automated id is referenced by @pytest.mark.req in tests/.
+
+requirements:
+  - id: REQ-HTTP-01
+    title: HTTP auf der Apex-Domain wird auf HTTPS umgeleitet
+    risk: high
+    level: api
+    automation: automated
+    statement: >
+      Ein Aufruf von http://<host>/ antwortet mit einer Weiterleitung auf
+      https://<host>/ und nicht auf eine Klartext-URL.
+
+  - id: REQ-HTTP-02
+    title: Die Startseite liefert ein HTML-Dokument
+    risk: high
+    level: api
+    automation: automated
+    statement: >
+      GET / antwortet 200 mit einem HTML-Inhalt und genau einer sichtbaren
+      Hauptüberschrift ist Sache der E2E-Prüfung; hier zählt der Vertrag
+      Status und Content-Type.
+
+  - id: REQ-HTTP-03
+    title: robots.txt erlaubt das Crawlen und nennt die Sitemap
+    risk: medium
+    level: api
+    automation: automated
+    statement: >
+      robots.txt ist erreichbar, erlaubt User-agent * mindestens /, und
+      verweist auf die Sitemap-Index-URL.
+
+  - id: REQ-HTTP-04
+    title: Die Sitemap-Indexdatei ist gültiges XML und nennt eine Kind-Sitemap
+    risk: medium
+    level: api
+    automation: automated
+    statement: >
+      /sitemap-index.xml antwortet 200 und enthält mindestens eine loc.
+      /sitemap.xml leitet auf den Index weiter.
+
+  - id: REQ-HTTP-05
+    title: llms.txt beschreibt das Angebot und verlinkt Kernseiten
+    risk: medium
+    level: api
+    automation: automated
+    statement: >
+      /llms.txt antwortet 200 und nennt die Audit-, FAQ- und Angebots-URLs.
+      Die Datei ist Teil der selbst beworbenen Agent-Readiness.
+
+  - id: REQ-HTTP-06
+    title: Unbekannte Pfade enden auf einer 404-Seite
+    risk: medium
+    level: api
+    automation: automated
+    statement: >
+      Ein stabiler, nicht existierender Pfad mit Slash antwortet 404 und
+      enthält den sichtbaren Hinweis, dass die Seite fehlt. Ohne Slash
+      bleibt die Weiterleitung auf HTTPS.
+
+  - id: REQ-HTTP-07
+    title: HEAD ist lesend erfolgreich, OPTIONS verändert nichts
+    risk: low
+    level: api
+    automation: automated
+    statement: >
+      HEAD / antwortet 200. OPTIONS / wird abgelehnt oder beantwortet, ohne
+      dass ein Folge-GET / fehlschlägt. Es wird kein PUT, POST oder DELETE gesendet.
+
+  - id: REQ-SEO-01
+    title: Kernseiten haben Sprache, Titel, Canonical und hreflang
+    risk: medium
+    level: api
+    automation: automated
+    statement: >
+      Die deutschen und englischen Kernseiten setzen html lang, einen
+      nicht leeren title, eine description, einen canonical link und
+      Alternaten für de und en.
+
+  - id: REQ-SEO-02
+    title: JSON-LD ist parsebar und zur Seite passend
+    risk: medium
+    level: api
+    automation: automated
+    statement: >
+      Die Startseite enthält Organization und WebSite. Die FAQ-Seite
+      enthält FAQPage. Die Audit-Seite enthält ein Angebot (Service oder Offer).
+
+  - id: REQ-INT-01
+    title: Jede URL in der Sitemap antwortet mit 200 über HTTPS
+    risk: high
+    level: integration
+    automation: automated
+    statement: >
+      Alle loc-Einträge der Kind-Sitemaps sind erreichbar. Die im Katalog
+      geführten Kernpfade sind darin enthalten.
+
+  - id: REQ-INT-02
+    title: Interne Navigationslinks der Kernseiten lösen sich auf
+    risk: medium
+    level: integration
+    automation: automated
+    statement: >
+      Same-Origin-Links in den Kernseiten (ohne Mailto, Anker und die
+      Cloudflare-Mailverschleierung) enden auf HTTPS 200. Ein Klartext-Mailto
+      der öffentlichen Adresse ist vorhanden.
+
+  - id: REQ-INT-03
+    title: Das Stylesheet der Startseite ist erreichbar
+    risk: low
+    level: integration
+    automation: automated
+    statement: >
+      Das im HTML referenzierte Stylesheet antwortet 200 mit einem CSS-Typ.
+      Der Hash im Dateinamen wird nicht fest verdrahtet.
+
+  - id: REQ-I18N-01
+    title: Der Sprachwechsel führt auf die übersetzte Startseite
+    risk: medium
+    level: e2e
+    automation: automated
+    statement: >
+      Der Sprachschalter der deutschen Startseite zeigt auf /en/, die
+      englische Seite setzt lang=en und hat eine Hauptüberschrift.
+
+  - id: REQ-AUTH-01
+    title: Verwaltungsnahe Pfade geben keine Anwendung frei
+    risk: high
+    level: security
+    automation: automated
+    statement: >
+      /admin/, /dashboard/, /login/ und /wp-admin/ antworten nicht mit 200.
+      Akzeptiert werden 401, 403 oder 404 ohne Passwortfeld und ohne
+      offensichtliche Geheimnisse. Eine Anmeldung wird nicht versucht.
+
+  - id: REQ-AUTH-02
+    title: Unbekannte API-Pfade geben keine Kundendaten heraus
+    risk: high
+    level: security
+    automation: automated
+    statement: >
+      GET /api/, /api/health und /api/proposal antworten 401, 403 oder 404.
+      Der Körper ist klein und enthält keinen Stacktrace und keine Schlüssel.
+
+  - id: REQ-AUTH-03
+    title: Rollen und Sitzungen
+    risk: high
+    level: security
+    automation: na
+    na_reason: >
+      Die öffentliche Website hat keinen Login, keine Rollen und keine
+      Sitzung. Berechtigungsmatrix und Redirect auf eine Anmeldeseite
+      sind deshalb nicht prüfbar. Sobald ein geschützter Bereich existiert,
+      wird diese Zeile auf automated gestellt und gegen 401/403 ohne Session
+      geprüft. Bis dahin decken REQ-AUTH-01 und REQ-AUTH-02 die Negativprobe ab.
+    statement: >
+      N/A auf diesem System. Siehe na_reason.
+
+  - id: REQ-SEC-01
+    title: Öffentliche HTML-Antworten senden Härtungs-Header
+    risk: medium
+    level: security
+    automation: automated
+    statement: >
+      Soll: Strict-Transport-Security, Content-Security-Policy,
+      X-Content-Type-Options und Referrer-Policy. Ist-Zustand siehe DEF-SEC-01.
+      Der Test ist xfail und wird wieder scharf, wenn die Header da sind.
+
+  - id: REQ-SEC-02
+    title: Slash-Weiterleitungen bleiben auf HTTPS
+    risk: medium
+    level: security
+    automation: automated
+    statement: >
+      Öffentliche Pfade wie /audit leiten auf https weiter. /api leitet
+      heute auf http um (DEF-SEC-02) und ist deshalb xfail.
+
+  - id: REQ-SEC-03
+    title: TLS ist aktuell und das Zertifikat passt zum Host
+    risk: high
+    level: security
+    automation: automated
+    statement: >
+      Der Handshake handelt mindestens TLS 1.2 aus. Ein DNS-Name im
+      Zertifikat deckt den Host ab, direkt oder über eine Wildcard der Eltern-Domain.
+
+  - id: REQ-SEC-04
+    title: Öffentliche GETs setzen kein Tracking-Cookie ohne Flags
+    risk: medium
+    level: security
+    automation: automated
+    statement: >
+      Set-Cookie auf /, /audit/ und /datenschutz/ ist leer oder jedes Cookie
+      trägt Secure und HttpOnly oder SameSite.
+
+  - id: REQ-SEC-05
+    title: Offensichtliche Geheimnis-Dateien werden nicht ausgeliefert
+    risk: high
+    level: security
+    automation: automated
+    statement: >
+      GET /.env antwortet nicht 200 und der Körper enthält keine typischen
+      Zuweisungen von Zugangsdaten. Das ist eine einzelne Negativprobe,
+      kein Scan.
+
+  - id: REQ-PRIV-01
+    title: Analysewerkzeuge sind entweder abwesend oder in der Datenschutzerklärung genannt
+    risk: medium
+    level: security
+    automation: automated
+    statement: >
+      Wenn das HTML ein Cloudflare-Web-Analytics-Beacon lädt, nennt die
+      Datenschutzerklärung dieses Werkzeug. Heute tut sie das nicht (DEF-PRIV-01).
+
+  - id: REQ-E2E-01
+    title: Die Startseite zeigt den primären Audit-Einstieg, ohne ihn abzusenden
+    risk: high
+    level: e2e
+    automation: automated
+    statement: >
+      Der Link "Website-Audit für 79 € starten" ist sichtbar und zeigt auf
+      /audit/. Der Test klickt ihn nicht.
+
+  - id: REQ-E2E-02
+    title: Die Hauptnavigation erreicht die FAQ
+    risk: medium
+    level: e2e
+    automation: automated
+    statement: >
+      Über die Desktop-Navigation oder, wenn sie verborgen ist, über das
+      mobile Menü erreicht man /faq/ mit einer Hauptüberschrift.
+
+  - id: REQ-E2E-03
+    title: Der Preisumschalter ändert den angezeigten Betrag
+    risk: low
+    level: e2e
+    automation: automated
+    statement: >
+      Der Button "Jährlich" im Preisblock ändert den ersten Preistext.
+      Es wird nichts abgeschickt.
+
+  - id: REQ-E2E-04
+    title: Das mobile Menü lässt sich öffnen
+    risk: medium
+    level: e2e
+    automation: automated
+    statement: >
+      Bei schmalem Viewport öffnet der Menü-Button das mobile Menü und
+      setzt aria-expanded auf true.
+
+  - id: REQ-E2E-05
+    title: Der Theme-Schalter wechselt data-theme und merkt sich die Wahl
+    risk: low
+    level: e2e
+    automation: automated
+    statement: >
+      Ein Klick auf #themeToggle ändert data-theme und schreibt
+      veryops-theme in den localStorage. Es wird nichts an den Server gesendet.
+
+  - id: REQ-E2E-06
+    title: Stripe-Kauf-Links sind HTTPS und werden nicht geöffnet
+    risk: high
+    level: e2e
+    automation: automated
+    statement: >
+      Mindestens ein Link zeigt auf https://buy.stripe.com/. Der Test
+      navigiert nicht dorthin. Die Route-Sperre bricht stripe.com zusätzlich ab.
+
+  - id: REQ-E2E-07
+    title: Der Angebotsdialog prüft Eingaben im Browser und sendet nicht
+    risk: high
+    level: e2e
+    automation: automated
+    statement: >
+      Ungültige E-Mail, fehlende Einwilligung und fehlendes Captcha erzeugen
+      die Texte aus #quote-strings. Es geht kein POST an /api/proposal hinaus.
+      Turnstile wird nicht gelöst. Der zunächst deaktivierte Senden-Button
+      wird nur im Test freigegeben, damit der Submit-Handler überhaupt läuft.
+
+  - id: REQ-A11Y-01
+    title: axe-core findet auf den Kernseiten keine critical- oder serious-Verstöße
+    risk: medium
+    level: a11y
+    automation: automated
+    statement: >
+      Geprüft werden /, /audit/, /faq/, /angebot/ und /impressum/ im
+      Chromium-Volllauf. Moderate Funde werden nicht als Fehlschlag gewertet
+      und gehören in die explorative Charta.
+
+  - id: REQ-A11Y-02
+    title: Tastatur und Zoom bleiben eine menschliche Prüfung
+    risk: medium
+    level: a11y
+    automation: manual
+    evidence: docs/07-exploratives-testen.md
+    statement: >
+      Fokusreihenfolge, Zoom auf 200 % und der Skip-Link werden explorativ
+      geprüft. axe ersetzt das nicht.
+
+  - id: REQ-ERR-01
+    title: Die 404-Seite bietet einen Weg zurück
+    risk: medium
+    level: e2e
+    automation: automated
+    statement: >
+      Die 404-Seite zeigt "Seite nicht gefunden" und einen Link "Zur Startseite".
+
+  - id: REQ-ERR-02
+    title: Ohne Netz lädt die Seite nicht stillschweigend als Erfolg
+    risk: medium
+    level: e2e
+    automation: automated
+    statement: >
+      context.set_offline lässt goto fehlschlagen. Es gibt keinen App-Shell-Fallback,
+      der eine leere Seite als 200 ausgibt. Das ist Beobachtung, kein PWA-Versprechen.
+
+  - id: REQ-ERR-03
+    title: Ein blockiertes Captcha zeigt einen Fehler und sendet nicht
+    risk: medium
+    level: e2e
+    automation: automated
+    statement: >
+      Wenn das Turnstile-Skript per Route abgebrochen wird, erscheint der
+      Fehlertext aus den Seiten-Strings. /api/proposal wird nicht gerufen.
+
+  - id: REQ-ERR-04
+    title: Simulierter Dokumentfehler bleibt im Test und trifft den Server nicht
+    risk: low
+    level: e2e
+    automation: automated
+    statement: >
+      Eine Playwright-Route erfüllt /audit/ mit HTTP 500, bevor das Netz
+      gefragt wird. Der Test sieht die simulierte Seite.
+
+  - id: REQ-MAN-01
+    title: Manuelle Regressionscheckliste vor einer Freigabe
+    risk: medium
+    level: manual
+    automation: manual
+    evidence: docs/08-manuelle-regression.md
+    statement: >
+      Die Checkliste deckt, was die Automatisierung bewusst nicht klickt
+      (Kauf, Absenden, Inhalt der Rechtstexte im Detail).
+
+  - id: REQ-EXP-01
+    title: Explorative Charta der öffentlichen Vertrauensflächen
+    risk: medium
+    level: exploratory
+    automation: manual
+    evidence: docs/07-exploratives-testen.md
+    statement: >
+      Eine ausgeführte Session vom 26. November 2026 plus offene Charters.
+
+  - id: REQ-VIS-01
+    title: Visuelle Regression gegen eine Baseline
+    risk: low
+    level: visual
+    automation: na
+    na_reason: >
+      Es gibt keine freigegebene Screenshot-Baseline und keinen stabilen
+      Staging-Stand. Ein Pixelvergleich gegen Produktion wäre entweder
+      Rauschen (Theme, Animation) oder eine Scheingenauigkeit. Der Theme-Wechsel
+      ist funktional in REQ-E2E-05 abgedeckt. Visual kommt dazu, wenn eine
+      Baseline im Repository gepflegt wird.
+    statement: N/A, siehe na_reason.

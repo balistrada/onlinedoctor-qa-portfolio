@@ -1,0 +1,136 @@
+name: Full run
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL (read-only)
+        required: false
+        default: https://veryops.kintree.eu
+      publish_pages:
+        description: Publish reports to GitHub Pages
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-run
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install -r requirements.lock
+      - run: python -m playwright install --with-deps chromium
+      - name: Report widget
+        working-directory: frontend/report-summary
+        run: npm ci && npm test
+      - name: Full Chromium session, including API and accessibility
+        env:
+          QA_RUN_SCOPE: full
+          BASE_URL: ${{ inputs.base_url }}
+          REQUEST_INTERVAL_SECONDS: "0.4"
+          E2E_PACE_SECONDS: "0.45"
+        run: >
+          pytest tests/unit tests/api tests/integration tests/e2e tests/a11y
+          -m "not quarantine"
+          --browser chromium
+          --junitxml=reports/junit-full.xml
+          --html=reports/pytest-full.html --self-contained-html
+          --alluredir=reports/allure-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-reports-full
+          path: reports/
+
+  browsers:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - browser: firefox
+            device: ""
+          - browser: webkit
+            device: ""
+          - browser: chromium
+            device: Pixel 7
+          - browser: webkit
+            device: iPhone 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - run: python -m pip install -r requirements.lock
+      - run: python -m playwright install --with-deps ${{ matrix.browser }}
+      - name: Smoke slice
+        env:
+          QA_RUN_SCOPE: cross-browser
+          BASE_URL: ${{ inputs.base_url }}
+          E2E_PACE_SECONDS: "0.5"
+          BROWSER: ${{ matrix.browser }}
+          DEVICE: ${{ matrix.device }}
+        run: |
+          args=(--browser "$BROWSER")
+          slug="desktop"
+          if [ -n "$DEVICE" ]; then
+            args+=(--device "$DEVICE")
+            slug="${DEVICE// /-}"
+          fi
+          pytest tests/e2e -m "e2e and smoke" "${args[@]}" \
+            --junitxml="reports/junit-${BROWSER}-${slug}.xml" \
+            --html="reports/pytest-${BROWSER}-${slug}.html" --self-contained-html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-reports-${{ matrix.browser }}-${{ matrix.device || 'desktop' }}
+          path: reports/
+
+  pages:
+    needs: [release, browsers]
+    if: ${{ inputs.publish_pages && always() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          path: reports/artifacts
+          pattern: qa-reports-*
+      - name: Assemble
+        run: |
+          mkdir -p reports
+          find reports/artifacts -type f \( -name '*.html' -o -name '*.md' \) -exec cp -n {} reports/ \; || true
+          python scripts/assemble_pages.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/pages
+      - uses: actions/deploy-pages@v4

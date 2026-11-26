@@ -1,0 +1,113 @@
+version: 2.1
+
+parameters:
+  run_full:
+    type: boolean
+    default: false
+
+jobs:
+  quality-gate:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Install Node
+          command: |
+            curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+      - restore_cache:
+          keys:
+            - pip-v1-{{ checksum "requirements.lock" }}
+      - run:
+          name: Install Python dependencies
+          command: pip install -r requirements.lock
+      - save_cache:
+          key: pip-v1-{{ checksum "requirements.lock" }}
+          paths:
+            - ~/.cache/pip
+      - run:
+          name: Chromium when browser tests exist
+          command: |
+            if compgen -G "tests/e2e/*.py" > /dev/null; then
+              python -m playwright install --with-deps chromium
+            fi
+      - run:
+          name: Quality gate
+          command: bash scripts/quality_gate.sh
+          environment:
+            QA_RUN_SCOPE: quality-gate
+            BASE_URL: https://veryops.kintree.eu
+            REQUEST_INTERVAL_SECONDS: "0.35"
+      - store_artifacts:
+          path: reports
+          destination: qa-reports
+      - store_test_results:
+          path: reports
+
+  full-run:
+    docker:
+      - image: cimg/python:3.12
+    resource_class: medium
+    steps:
+      - checkout
+      - run: pip install -r requirements.lock
+      - run: python -m playwright install --with-deps chromium firefox webkit
+      - run:
+          name: Firefox smoke
+          command: >
+            pytest tests/e2e -m "e2e and smoke" --browser firefox
+            --junitxml=reports/junit-firefox.xml
+          environment:
+            QA_RUN_SCOPE: cross-browser
+            E2E_PACE_SECONDS: "0.5"
+      - run:
+          name: WebKit smoke
+          command: >
+            pytest tests/e2e -m "e2e and smoke" --browser webkit
+            --junitxml=reports/junit-webkit.xml
+          environment:
+            QA_RUN_SCOPE: cross-browser
+            E2E_PACE_SECONDS: "0.5"
+      - run:
+          name: Pixel 7 smoke
+          command: >
+            pytest tests/e2e -m "e2e and smoke" --browser chromium --device "Pixel 7"
+            --junitxml=reports/junit-pixel.xml
+          environment:
+            QA_RUN_SCOPE: cross-browser
+            E2E_PACE_SECONDS: "0.5"
+      - run:
+          name: iPhone smoke
+          command: >
+            pytest tests/e2e -m "e2e and smoke" --browser webkit --device "iPhone 15"
+            --junitxml=reports/junit-iphone.xml
+          environment:
+            QA_RUN_SCOPE: cross-browser
+            E2E_PACE_SECONDS: "0.5"
+      - run:
+          name: Official session (API, Chromium, accessibility)
+          command: >
+            pytest tests/unit tests/api tests/integration tests/e2e tests/a11y
+            -m "not quarantine" --browser chromium
+            --junitxml=reports/junit-full.xml
+            --html=reports/pytest-full.html --self-contained-html
+            --alluredir=reports/allure-results
+          environment:
+            QA_RUN_SCOPE: full
+            BASE_URL: https://veryops.kintree.eu
+            REQUEST_INTERVAL_SECONDS: "0.4"
+            E2E_PACE_SECONDS: "0.45"
+      - store_artifacts:
+          path: reports
+          destination: qa-reports-full
+
+workflows:
+  quality-gate:
+    jobs:
+      - quality-gate
+  full-run:
+    when: "<< pipeline.parameters.run_full >>"
+    jobs:
+      - full-run
