@@ -1,0 +1,76 @@
+# Open findings against https://veryops.kintree.eu, observed 2026-11-26.
+# github_issue stays empty until someone files .github/ISSUE_TEMPLATE/defect.md.
+# Tests that expect the current gap use xfail and name the DEF id in the reason.
+
+defects:
+  - id: DEF-SEC-01
+    title: Öffentliche HTML-Antworten ohne die üblichen Härtungs-Header
+    risk: medium
+    status: open
+    requirements: [REQ-SEC-01]
+    github_issue:
+    evidence: docs/befunde.md#def-sec-01
+    summary: >
+      GET / liefert weder Strict-Transport-Security noch Content-Security-Policy,
+      X-Content-Type-Options oder Referrer-Policy. Einzelne Cloudflare-Sonderpfade
+      setzen X-Frame-Options und Referrer-Policy, die Dokumente selbst nicht.
+      Auf einer statischen Seite ohne Sitzungs-Cookie ist das ausnutzbare
+      Fenster kleiner als bei einer Anwendung mit Login; für ein Angebot,
+      das selbst Härtung prüft, bleibt es ein sichtbarer Widerspruch.
+
+  - id: DEF-SEC-02
+    title: Slash-Weiterleitung von /api fällt auf HTTP zurück
+    risk: medium
+    status: open
+    requirements: [REQ-SEC-02]
+    github_issue:
+    evidence: docs/befunde.md#def-sec-02
+    summary: >
+      GET https://veryops.kintree.eu/api antwortet 301 mit Location
+      http://veryops.kintree.eu/api/. Der Klartext-Hop leitet wieder auf HTTPS,
+      /api/ selbst ist ein JSON-404 ohne Nutzdaten. Heute kein Datenabfluss,
+      aber das Muster wird hoch, sobald unter /api etwas Authentifiziertes liegt.
+      Andere Pfade wie /faq bleiben auf HTTPS.
+
+  - id: DEF-PRIV-01
+    title: Web-Analytics-Beacon trotz Aussage, es gebe keine Analysewerkzeuge
+    risk: medium
+    status: open
+    requirements: [REQ-PRIV-01]
+    github_issue:
+    evidence: docs/befunde.md#def-priv-01
+    summary: >
+      Das HTML bindet static.cloudflareinsights.com/beacon.min.js ein.
+      Abschnitt 8 der Datenschutzerklärung sagt, es würden keine
+      Analysewerkzeuge eingesetzt, und nennt Google Analytics als Beispiel.
+      Cloudflare als CDN und Auftragsverarbeiter ist offengelegt, das
+      Analytics-Beacon nicht. Ob das Snippet aus dem Cloudflare-Dashboard
+      kommt oder aus dem Template, ändert die Pflicht zur Erwähnung nicht.
+
+  - id: DEF-A11Y-01
+    title: Sprachschalter — sichtbarer Text fehlt im barrierefreien Namen
+    risk: medium
+    status: open
+    requirements: [REQ-A11Y-01]
+    github_issue:
+    evidence: docs/befunde.md#def-a11y-01
+    summary: >
+      Der Link trägt sichtbar „EN“ oder „DE“ und aria-label
+      „Switch to English“ beziehungsweise „Auf Deutsch wechseln“.
+      axe-core wertet das auf jeder geprüften Seite als serious
+      (label-content-name-mismatch, WCAG 2.5.3). Wer die sichtbare
+      Abkürzung spricht, trifft den Namen nicht. Der ausgesprochene Name
+      ist inhaltlich klar, deshalb mittel und nicht hoch.
+
+  - id: DEF-LINK-01
+    title: Verschleierte E-Mail-Links antworten ohne Skript mit 404
+    risk: low
+    status: open
+    requirements: [REQ-INT-02]
+    github_issue:
+    evidence: docs/befunde.md#def-link-01
+    summary: >
+      Href-Werte unter /cdn-cgi/l/email-protection antworten 404.
+      Das Cloudflare-Decode-Skript soll sie im Browser zu mailto machen.
+      Ein sichtbares mailto:veryops@kintree.eu liegt daneben, der Kontaktweg
+      ist also nicht zu. Niedrig, weil ein funktionierender Ersatz dasteht.

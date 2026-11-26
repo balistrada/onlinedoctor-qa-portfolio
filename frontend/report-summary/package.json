@@ -1,0 +1,18 @@
+{
+  "name": "veryops-report-summary",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Lokales React-Beispiel, das eine Release-Empfehlung rendert. Nicht das System under Test.",
+  "scripts": {
+    "test": "jest --colors=false"
+  },
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-test-renderer": "^18.3.1"
+  }
+}

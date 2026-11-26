@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "veryops-qa-portfolio"
+version = "1.0.0"
+description = "Risk-based QA portfolio against the public veryops website."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Palma" }]
+
+[tool.setuptools.packages.find]
+include = ["qa_portfolio*"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--reruns",
+    "1",
+    "--reruns-delay",
+    "1",
+    "--tb=short",
+    "--screenshot=only-on-failure",
+    "--output=reports/playwright",
+]
+markers = [
+    "risk_high: product risk high — failure blocks a release recommendation",
+    "risk_medium: product risk medium — failure makes the release conditional",
+    "risk_low: product risk low — recorded, does not by itself block GO",
+    "api: HTTP and document-contract checks without a browser",
+    "integration: checks that cross pages, sitemaps, or linked resources",
+    "e2e: browser end-to-end checks",
+    "a11y: accessibility smoke (axe-core)",
+    "security: read-only security hygiene",
+    "visual: optional visual checks (none are active; see the gap note)",
+    "smoke: small cross-browser subset",
+    "quarantine: excluded from the quality gate; suspected environment noise",
+    "req(req_id): requirement id, use @pytest.mark.req('REQ-...')",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["qa_portfolio", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["qa_portfolio"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]

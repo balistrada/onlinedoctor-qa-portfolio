@@ -1,0 +1,26 @@
+# System under test. BASE_URL overrides base_url. TEST_ENV selects a profile
+# when BASE_URL is unset (default: prod).
+#
+# staging and local are honest placeholders. This portfolio has no staging
+# host and does not boot a local server. Point BASE_URL at one when it exists.
+
+prod:
+  base_url: https://veryops.kintree.eu
+  mode: read-only-live
+  notes: >
+    Public marketing site. Tests may send gentle GET/HEAD/OPTIONS only.
+    No form posts, no checkout, no login attempts, no load.
+
+staging:
+  base_url: https://staging.veryops.kintree.eu
+  mode: placeholder
+  notes: >
+    Not provisioned. A real project would run the quality gate here and
+    keep production for a thin smoke only.
+
+local:
+  base_url: http://127.0.0.1:4321
+  mode: placeholder
+  notes: >
+    Placeholder for a local static preview. HTTPS-only checks skip themselves
+    when the scheme is not https.
